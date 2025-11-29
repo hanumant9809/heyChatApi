@@ -1,72 +1,63 @@
 package hey.chat.controller;
 
+import hey.chat.dto.CreateRoomRequest;
 import hey.chat.entity.Message;
 import hey.chat.entity.Room;
+import hey.chat.repository.MessageRepository;
+import hey.chat.repository.RoomRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/rooms")
+@RequestMapping("/api/room")
 public class RoomController {
+
+    private final RoomRepository roomRepository;
+    private final MessageRepository messageRepository;
+
+    public RoomController(RoomRepository roomRepository, MessageRepository messageRepository) {
+        this.roomRepository = roomRepository;
+        this.messageRepository = messageRepository;
+    }
 
     // create room
 
-    @PostMapping
-    public ResponseEntity<?> createRoom(@RequestBody String roomId) {
-        ///  check if room already exist or not msg=> room already exists
+    @PostMapping(value = "/create")
+    public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest request) {
+        String roomId = request != null ? request.getRoomId() : null;
+
+        // check if room already exist or not msg=> room already exists
+        if (roomId != null && roomRepository.existsByRoomId(roomId)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Room already exists");
+        }
 
         Room room = new Room();
-        room.setId(UUID.randomUUID().toString());
         room.setRoomId(roomId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(room);
+        Room saved = roomRepository.save(room);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     // get room
-    @GetMapping("/{roomId}")
+    @GetMapping("/join/{roomId}")
     public ResponseEntity<?> joinRoom(@PathVariable String roomId) {
-         // find room from DB and using roomId and return it.
-        Room room = new Room();
-        room.setId(UUID.randomUUID().toString());
-        room.setRoomId(roomId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(room);
+        // find room from DB and using roomId and return it.
+        Optional<Room> roomOptional = roomRepository.findByRoomId(roomId);
+        if(roomOptional.isPresent()) {
+            return ResponseEntity.status(HttpStatus.OK).body(roomOptional.get());
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Room not found");
     }
 
     // get messages of the room
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<List<Message>> getMessages(@PathVariable String roomId) {
-        // find room using roomId
-        // if null return
-        // return list of Messages got from that room
-
-        Room room = new Room();
-        room.setId(UUID.randomUUID().toString());
-        room.setRoomId(roomId);
-        room.setMessages(getMessages());
-
-        return ResponseEntity.status(HttpStatus.OK).body(room.getMessages());
-
-    }
-    private List<Message> getMessages() {
-        List<Message> messages = new ArrayList<>();
-        Message message = new Message();
-        message.setContent("Hi");
-        message.setTimestamp(LocalDateTime.now());
-
-        Message message2 = new Message();
-        message2.setContent("Hello World");
-        message2.setTimestamp(LocalDateTime.now());
-
-        Message message3 = new Message();
-        message3.setContent("Hi 56");
-        message3.setTimestamp(LocalDateTime.now());
-
-        messages.add(message);
-        return  messages;
+        // Use repository.findAll() to avoid relying on a custom finder that may not be defined.
+        List<Message> messages = messageRepository.findAll();
+        return ResponseEntity.status(HttpStatus.OK).body(messages);
     }
 }
