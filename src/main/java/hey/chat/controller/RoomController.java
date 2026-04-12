@@ -14,7 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/room")
+@RequestMapping("/room")
+@CrossOrigin(origins = "*")
 public class RoomController {
 
     private final RoomRepository roomRepository;
@@ -57,7 +58,7 @@ public class RoomController {
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<List<Message>> getMessages(@PathVariable String roomId) {
         // Use repository.findAll() to avoid relying on a custom finder that may not be defined.
-        List<Message> messages = messageRepository.findAll();
+        List<Message> messages = messageRepository.findByRoom_RoomId(roomId);
         return ResponseEntity.status(HttpStatus.OK).body(messages);
     }
 }
