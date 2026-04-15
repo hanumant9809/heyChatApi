@@ -3,6 +3,7 @@ package hey.chat.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -18,6 +19,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Autowired
     private WebSocketChannelInterceptor webSocketChannelInterceptor;
+
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -36,11 +40,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         logger.info("=== Registering STOMP Endpoints ===");
 
-        logger.info("Registering STOMP endpoint: /chat");
-        logger.info("Allowed Origins: http://localhost:3000");
+        // Split by comma if multiple origins provided
+        String[] origins = allowedOrigins.split(",");
 
         registry.addEndpoint("/chat")
-                .setAllowedOrigins("http://localhost:3000")
+                .setAllowedOrigins(origins)
                 .withSockJS();
 
         logger.info("STOMP endpoint registration completed successfully");
